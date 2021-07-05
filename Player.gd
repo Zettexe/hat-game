@@ -88,7 +88,7 @@ func calculate_slide(linear_velocity: Vector2, delta: float):
 	
 	if !is_on_floor():
 		_current_speed_target = speed_target
-		temp_acceleration *= wallrun_acceleration_modifier if is_on_background() else air_acceleration_modifier
+		temp_acceleration *= wallrun_acceleration_modifier if is_on_background() and _wallrunning else air_acceleration_modifier
 	else:
 		if not Input.is_action_pressed("slide") and _timer.is_stopped():
 			_current_speed_target = speed_target
@@ -141,6 +141,6 @@ func _draw():
 func _draw_UI(node):
 	if debug_mode:
 		node.draw_string(_font, Vector2(10, 20), "Speed: %d" % [_velocity.x], Color.red)
-		node.draw_string(_font, Vector2(10, 40), "Acc Modifier: %s" % ["None" if is_on_floor() else (wallrun_acceleration_modifier if is_on_background() else air_acceleration_modifier)], Color.yellow)
+		node.draw_string(_font, Vector2(10, 40), "Acc Modifier: %s" % ["None" if is_on_floor() else (wallrun_acceleration_modifier if is_on_background() and _wallrunning else air_acceleration_modifier)], Color.yellow)
 		node.draw_string(_font, Vector2(10, 60), "Acceleration: %d" % [max(_current_acceleration, min_acceleration)], Color.cyan)
 		node.draw_string(_font, Vector2(10, 80), "Gravity*: %d" % [_velocity.y], Color.green)
