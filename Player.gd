@@ -13,6 +13,7 @@ export var wallrun_jump_force: = 200.0
 export var wallrun_speed_boost: = 150.0
 export var wallrun_delay: = 0.5
 export var wallrun_acceleration_modifier: = 0.1
+export var wallrun_stopping_speed: = 1000.0
 
 var _font: = preload("res://fonts/montreal/Montreal.tres") # DEBUG
 var _velocity: = Vector2()
@@ -53,7 +54,11 @@ func get_direction() -> Vector2:
 func calculate_move_velocity(linear_velocity: Vector2, delta: float):
 	var out: = linear_velocity
 	out.x = move_toward(out.x, _current_speed_target, max(_current_acceleration, min_acceleration) * delta)
-	out.y += _current_gravity * delta
+	
+	if _wallrunning and wallrun_stopping_speed > 0:
+		out.y = move_toward(out.y, 0, wallrun_stopping_speed * delta)
+	else: 
+		out.y += _current_gravity * delta 
 	
 	return out
 
@@ -107,9 +112,11 @@ func calculate_wallrun(linear_velocity: Vector2):
 	
 	var out = linear_velocity
 	if Input.is_action_just_pressed("wallrun") and is_on_background():
-		out.y = 0
-		_timer.start(wallrun_delay)
-		_current_gravity = 0
+		if wallrun_stopping_speed <= 0:
+			out.y = 0
+			_current_gravity = 0
+		if wallrun_delay > 0:
+			_timer.start(wallrun_delay)
 		_wallrunning = true
 	if not Input.is_action_pressed("wallrun") or not is_on_background() or Input.is_action_just_pressed("jump"):
 		_timer.stop()
