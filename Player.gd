@@ -14,6 +14,7 @@ export var wallrun_speed_boost: = 150.0
 export var wallrun_delay: = 0.5
 export var wallrun_acceleration_modifier: = 0.1
 export var wallrun_stopping_speed: = 1000.0
+export var snap_distance: = 10
 
 var _font: = preload("res://fonts/montreal/Montreal.tres") # DEBUG
 var _velocity: = Vector2()
@@ -24,13 +25,14 @@ var _wallrunning: = false
 onready var _sprite: Sprite = $Sprite
 onready var _timer: Timer = $Timer
 onready var _tilemap: = $"../TileMap"
+onready var _rayshape: = $RayShape
+onready var _capsule_shape: = $MainShape
 onready var node = get_parent().get_node("UILayer/UI")
 
 func _ready():
 	node.connect("draw", self, "_draw_UI", [node])
 
 func _physics_process(delta):
-	
 	var is_jump_interrupted = Input.is_action_just_released("jump") and _velocity.y < 0.0
 	var direction: = get_direction()
 	_velocity = calculate_jump(_velocity, direction, false)
@@ -39,7 +41,14 @@ func _physics_process(delta):
 	_velocity = calculate_wallrun(_velocity)
 	_velocity = calculate_move_velocity(_velocity, delta)
 	
-	_velocity = move_and_slide(_velocity, Vector2.UP)
+	if _velocity.y >= 0 and test_move(transform, _velocity): 
+		_rayshape.disabled = false
+		_capsule_shape.position = Vector2(0, -25)
+		_capsule_shape.shape.set_extents(Vector2(10, 15))
+	
+	_velocity = move_and_slide(_velocity, Vector2.UP) if snap_distance <= 0 or _velocity.y < 0 else move_and_slide_with_snap(_velocity, Vector2.DOWN * snap_distance, Vector2.UP)
+		
+	
 	
 	if debug_mode:
 		update()
@@ -69,6 +78,9 @@ func calculate_jump(linear_velocity: Vector2, direction: Vector2, is_jump_interr
 	
 	if direction.y == -1.0:
 		var _jump_force = jump_force
+		_rayshape.disabled = true
+		_capsule_shape.position = Vector2(0, -20)
+		_capsule_shape.shape.set_extents(Vector2(10, 20))
 		if _wallrunning:
 			_jump_force = wallrun_jump_force 
 			out.x += wallrun_speed_boost
@@ -135,19 +147,18 @@ func is_on_background():
 func _draw():
 	if debug_mode:
 		var real_acceleration = acceleration * (_velocity.x / 400)
-		draw_line(Vector2(0, -2), Vector2(_velocity.x * 0.25 + 2, -2), Color.black, 7)
-		draw_line(Vector2.ZERO, Vector2(0, _velocity.y * 0.25 + 2), Color.black, 6)
-		draw_line(Vector2(0, -10), Vector2(real_acceleration * 0.25 + 2, -10), Color.black, 6)
-		draw_line(Vector2(0, -10), Vector2(max(_current_acceleration, min_acceleration) * 0.25 + 2, -10), Color.black, 6)
+		draw_line(Vector2(), _velocity * 0.25 + Vector2(1, 0), Color.black, 7.0)
 		
-		draw_line(Vector2(0, -2), Vector2(_velocity.x * 0.25, -2), Color.red, 3.0)
-		draw_line(Vector2.ZERO, Vector2(0, _velocity.y * 0.25), Color.green, 2.0)
-		draw_line(Vector2(0, -10), Vector2(real_acceleration * 0.25, -10), Color.cyan, 2.0)
-		draw_line(Vector2(0, -10), Vector2(max(_current_acceleration, min_acceleration) * 0.25, -10), Color.yellow, 2.0)
+		draw_line(Vector2(), _velocity * 0.25, Color.red, 3.0)
+		if snap_distance > 0:
+			draw_line(Vector2.ZERO, Vector2.DOWN * snap_distance, Color.green, 2.0)
+
 
 func _draw_UI(node):
 	if debug_mode:
 		node.draw_string(_font, Vector2(10, 20), "Speed: %d" % [_velocity.x], Color.red)
-		node.draw_string(_font, Vector2(10, 40), "Acc Modifier: %s" % ["None" if is_on_floor() else (wallrun_acceleration_modifier if is_on_background() and _wallrunning else air_acceleration_modifier)], Color.yellow)
-		node.draw_string(_font, Vector2(10, 60), "Acceleration: %d" % [max(_current_acceleration, min_acceleration)], Color.cyan)
-		node.draw_string(_font, Vector2(10, 80), "Gravity*: %d" % [_velocity.y], Color.green)
+		node.draw_string(_font, Vector2(10, 40), "Gravity*: %d" % [_velocity.y], Color.red)
+		node.draw_string(_font, Vector2(10, 60), "Acc Modifier: %s" % ["None" if is_on_floor() else (wallrun_acceleration_modifier if is_on_background() and _wallrunning else air_acceleration_modifier)], Color.yellow)
+		node.draw_string(_font, Vector2(10, 80), "Acceleration: %d" % [max(_current_acceleration, min_acceleration)], Color.cyan)
+		if snap_distance > 0:
+			node.draw_string(_font, Vector2(10, 100), "Snap Distance: %d" % [snap_distance], Color.green)
