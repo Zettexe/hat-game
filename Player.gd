@@ -15,6 +15,7 @@ export var wallrun_delay: = 0.5
 export var wallrun_acceleration_modifier: = 0.1
 export var wallrun_stopping_speed: = 1000.0
 export var snap_distance: = 10
+export var max_consecutive_slides: = 1
 
 var _font: = preload("res://fonts/montreal/Montreal.tres") # DEBUG
 var _velocity: = Vector2()
@@ -22,6 +23,7 @@ var _current_speed_target: = speed_target
 var _current_acceleration: = acceleration
 var _current_gravity: = gravity
 var _wallrunning: = false
+var _slide_count: = 0
 onready var _sprite: Sprite = $Sprite
 onready var _timer: Timer = $Timer
 onready var _tilemap: = $"../TileMap"
@@ -94,12 +96,16 @@ func calculate_jump(linear_velocity: Vector2, direction: Vector2, is_jump_interr
 func calculate_slide(linear_velocity: Vector2, delta: float):
 	var out: = linear_velocity
 	
-	if Input.is_action_just_pressed("slide") and is_on_floor() and _timer.is_stopped():
+	if Input.is_action_pressed("slide") and is_on_floor() and _timer.is_stopped() and _slide_count < max_consecutive_slides:
+		_slide_count += 1
 		out.x += slide_speed_boost
 		_current_speed_target = 0
 		_sprite.centered = false
 		_sprite.rotation_degrees = -90.0
 		_timer.start(0.0035 * slide_speed_boost)
+	
+	if Input.is_action_just_released("slide"):
+		_slide_count = 0
 	
 	var temp_acceleration = acceleration
 	
