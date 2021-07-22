@@ -162,9 +162,10 @@ func _draw():
 
 func _draw_UI(node):
 	if debug_mode:
-		node.draw_string(_font, Vector2(10, 20), "Speed: %d" % [_velocity.x], Color.red)
-		node.draw_string(_font, Vector2(10, 40), "Gravity*: %d" % [_velocity.y], Color.red)
-		node.draw_string(_font, Vector2(10, 60), "Acc Modifier: %s" % ["None" if is_on_floor() else (wallrun_acceleration_modifier if is_on_background() and _wallrunning else air_acceleration_modifier)], Color.yellow)
-		node.draw_string(_font, Vector2(10, 80), "Acceleration: %d" % [max(_current_acceleration, min_acceleration)], Color.cyan)
+		node.draw_string(_font, Vector2(10, 60), "Speed: %d" % [_velocity.x], Color.red)
+		node.draw_string(_font, Vector2(10, 80), "Gravity*: %d" % [_velocity.y], Color.red)
+		node.draw_string(_font, Vector2(10, 100), "Acc Modifier: %s" % ["None" if is_on_floor() else (wallrun_acceleration_modifier if is_on_background() and _wallrunning else air_acceleration_modifier)], Color.yellow)
+		node.draw_string(_font, Vector2(10, 120), "Acceleration: %d" % [max(_current_acceleration, min_acceleration)], Color.cyan)
 		if snap_distance > 0:
-			node.draw_string(_font, Vector2(10, 100), "Snap Distance: %d" % [snap_distance], Color.green)
+			node.draw_string(_font, Vector2(10, 140), "Snap Distance: %d" % [snap_distance], Color.green)
+
