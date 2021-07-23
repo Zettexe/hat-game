@@ -16,6 +16,7 @@ export var wallrun_acceleration_modifier: = 0.1
 export var wallrun_stopping_speed: = 1000.0
 export var snap_distance: = 0
 export var max_consecutive_slides: = 1
+export var wallrun_coyote_time: = 0.1
 
 var _font: = preload("res://fonts/montreal/Montreal.tres") # DEBUG
 var _velocity: = Vector2()
@@ -27,6 +28,7 @@ var _slide_count: = 0
 var _finished_wallrun_slide = false
 onready var _sprite: Sprite = $Sprite
 onready var _timer: Timer = $Timer
+onready var _coyote_timer: Timer = $CoyoteTimer
 onready var _tilemap: = $"../TileMap"
 onready var _rayshape: = $RayShape
 onready var _capsule_shape: = $MainShape
@@ -76,11 +78,11 @@ func calculate_move_velocity(linear_velocity: Vector2, delta: float):
 	else:
 		out.y += _current_gravity * delta
 	
-	
 	return out
 
 func calculate_jump(linear_velocity: Vector2, direction: Vector2, is_jump_interrupted: bool):
-	if not is_on_floor() and not _wallrunning: return linear_velocity
+	print(is_on_floor(), _wallrunning, _coyote_timer.is_stopped())
+	if not is_on_floor() and not _wallrunning and _coyote_timer.is_stopped(): return linear_velocity
 	
 	var out: = linear_velocity
 	
@@ -89,10 +91,11 @@ func calculate_jump(linear_velocity: Vector2, direction: Vector2, is_jump_interr
 		_rayshape.disabled = true
 		_capsule_shape.position = Vector2(0, -20)
 		_capsule_shape.shape.set_extents(Vector2(10, 20))
-		if _wallrunning:
+		if _wallrunning or not _coyote_timer.is_stopped():
 			_jump_force = wallrun_jump_force 
 			out.x += wallrun_speed_boost
 		out.y = _jump_force * direction.y
+		_coyote_timer.stop()
 		_timer.stop()
 	if is_jump_interrupted:
 		out.y = 0.0
@@ -143,7 +146,9 @@ func calculate_wallrun(linear_velocity: Vector2):
 		if wallrun_delay > 0:
 			_timer.start(wallrun_delay)
 		_wallrunning = true
-	if not Input.is_action_pressed("wallrun") or not is_on_background() or Input.is_action_just_pressed("jump"):
+	if _wallrunning and (not Input.is_action_pressed("wallrun") or not is_on_background() or Input.is_action_just_pressed("jump")):
+		if not Input.is_action_just_pressed("jump"):
+			_coyote_timer.start(wallrun_coyote_time)
 		_timer.stop()
 		_current_gravity = gravity
 		_wallrunning = false
