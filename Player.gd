@@ -81,7 +81,6 @@ func calculate_move_velocity(linear_velocity: Vector2, delta: float):
 	return out
 
 func calculate_jump(linear_velocity: Vector2, direction: Vector2, is_jump_interrupted: bool):
-	print(is_on_floor(), _wallrunning, _coyote_timer.is_stopped())
 	if not is_on_floor() and not _wallrunning and _coyote_timer.is_stopped(): return linear_velocity
 	
 	var out: = linear_velocity
