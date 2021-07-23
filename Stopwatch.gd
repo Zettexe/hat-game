@@ -18,4 +18,3 @@ func _process(delta):
 func _draw_UI(node):
 	node.draw_string(font, Vector2(10, 20), "%s" % [Engine.get_frames_per_second()])
 	node.draw_string(font, Vector2(10, 40), "%s:%s" % [timer / 1000, fmod(timer / 1000.0, 1) * 1000.0])
-

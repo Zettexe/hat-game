@@ -25,6 +25,6 @@ tile_data = PoolIntArray( -1179601, 4, 0, -1114065, 4, 65536, -1048529, 4, 13107
 position = Vector2( 0, 280 )
 debug_mode = true
 
-[node name="Stopwatch Timeout" type="KinematicBody2D" parent="."]
+[node name="[TEMP] Stopwatch Timeout" type="KinematicBody2D" parent="."]
 position = Vector2( 27216, 96 )
 script = ExtResource( 3 )
