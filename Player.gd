@@ -14,7 +14,7 @@ export var wallrun_speed_boost: = 150.0
 export var wallrun_delay: = 0.5
 export var wallrun_acceleration_modifier: = 0.1
 export var wallrun_stopping_speed: = 1000.0
-export var snap_distance: = 10
+export var snap_distance: = 0
 export var max_consecutive_slides: = 1
 
 var _font: = preload("res://fonts/montreal/Montreal.tres") # DEBUG
@@ -24,6 +24,7 @@ var _current_acceleration: = acceleration
 var _current_gravity: = gravity
 var _wallrunning: = false
 var _slide_count: = 0
+var _finished_wallrun_slide = false
 onready var _sprite: Sprite = $Sprite
 onready var _timer: Timer = $Timer
 onready var _tilemap: = $"../TileMap"
@@ -40,8 +41,8 @@ func _physics_process(delta):
 	_velocity = calculate_jump(_velocity, direction, false)
 	
 	_velocity = calculate_slide(_velocity, delta)
-	_velocity = calculate_wallrun(_velocity)
 	_velocity = calculate_move_velocity(_velocity, delta)
+	_velocity = calculate_wallrun(_velocity)
 	
 	if _velocity.y >= 0 and test_move(transform, _velocity): 
 		_rayshape.disabled = false
@@ -50,7 +51,6 @@ func _physics_process(delta):
 	
 	_velocity = move_and_slide(_velocity, Vector2.UP) if snap_distance <= 0 or _velocity.y < 0 else move_and_slide_with_snap(_velocity, Vector2.DOWN * snap_distance, Vector2.UP)
 		
-	
 	
 	if debug_mode:
 		update()
@@ -67,9 +67,15 @@ func calculate_move_velocity(linear_velocity: Vector2, delta: float):
 	out.x = move_toward(out.x, _current_speed_target, max(_current_acceleration, min_acceleration) * delta)
 	
 	if _wallrunning and wallrun_stopping_speed > 0:
-		out.y = move_toward(out.y, 0, wallrun_stopping_speed * delta)
-	else: 
-		out.y += _current_gravity * delta 
+		if out.y == 0:
+			_finished_wallrun_slide = true
+		if not _finished_wallrun_slide:
+			out.y = move_toward(out.y, 0, wallrun_stopping_speed * delta)
+		else:
+			out.y += _current_gravity * delta
+	else:
+		out.y += _current_gravity * delta
+	
 	
 	return out
 
@@ -96,13 +102,17 @@ func calculate_jump(linear_velocity: Vector2, direction: Vector2, is_jump_interr
 func calculate_slide(linear_velocity: Vector2, delta: float):
 	var out: = linear_velocity
 	
-	if Input.is_action_pressed("slide") and is_on_floor() and _timer.is_stopped() and _slide_count < max_consecutive_slides:
-		_slide_count += 1
-		out.x += slide_speed_boost
-		_current_speed_target = 0
-		_sprite.centered = false
-		_sprite.rotation_degrees = -90.0
-		_timer.start(0.0035 * slide_speed_boost)
+	if is_on_floor() and _timer.is_stopped():
+		if Input.is_action_pressed("slide") and _slide_count < max_consecutive_slides:
+			_slide_count += 1
+			out.x += slide_speed_boost
+			_current_speed_target = 0
+			_sprite.centered = false
+			_sprite.rotation_degrees = -90.0
+			_timer.start(0.0035 * slide_speed_boost)
+		if not Input.is_action_pressed("slide"):
+			_current_speed_target = speed_target
+	
 	
 	if Input.is_action_just_released("slide"):
 		_slide_count = 0
@@ -112,10 +122,7 @@ func calculate_slide(linear_velocity: Vector2, delta: float):
 	if !is_on_floor():
 		_current_speed_target = speed_target
 		temp_acceleration *= wallrun_acceleration_modifier if is_on_background() and _wallrunning else air_acceleration_modifier
-	else:
-		if not Input.is_action_pressed("slide") and _timer.is_stopped():
-			_current_speed_target = speed_target
-			
+	
 	
 	_current_acceleration = temp_acceleration * (_velocity.x / 400)
 	
@@ -130,9 +137,9 @@ func calculate_wallrun(linear_velocity: Vector2):
 	
 	var out = linear_velocity
 	if Input.is_action_just_pressed("wallrun") and is_on_background():
+		_current_gravity = 0
 		if wallrun_stopping_speed <= 0:
 			out.y = 0
-			_current_gravity = 0
 		if wallrun_delay > 0:
 			_timer.start(wallrun_delay)
 		_wallrunning = true
@@ -140,11 +147,12 @@ func calculate_wallrun(linear_velocity: Vector2):
 		_timer.stop()
 		_current_gravity = gravity
 		_wallrunning = false
+		_finished_wallrun_slide = false
 	
 	return out
 
 func _wallrun_delay_end():
-	if _current_gravity == 0 and !is_on_floor(): _current_gravity = gravity * wallrun_gravity_modifier
+	if _wallrunning: _current_gravity = gravity * wallrun_gravity_modifier
 
 func is_on_background():
 	var cell_pos = _tilemap.world_to_map(position)
